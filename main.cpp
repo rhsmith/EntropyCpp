@@ -21,8 +21,10 @@ int shellIndex(int i, int j, int k);
 int kindex(int linearIndex);
 int jindex(int linearIndex);
 int iindex(int linearIndex);
+double dist(double,double,double);
 double sign(double x);
 const double PI = M_PI;
+const double dl = .3;
 
 
 // Main Program Entry Point
@@ -46,6 +48,15 @@ int main()
     posFile >> ypos[i];
     posFile >> zpos[i];
   }
+
+  for(int i=0; i < 10; i++)
+  {
+    cout<<xpos[i]<<", "<<ypos[i]<<", "<<zpos[i]<<endl;
+  }
+  cout << "Printing values" << endl;
+  cout << xpos[shellIndex(4,4,0)] << endl;
+  cout << ypos[shellIndex(4,4,0)] << endl;
+  cout << zpos[shellIndex(4,4,0)] << endl;
 
 
   //read in hdf data (in text file format)
@@ -77,6 +88,8 @@ int main()
   int Ny = 28;
   double X[Nx][Ny];
   double Y[Nx][Ny];
+//vector< vector <double> > X(26, vector<double> (26, 0));
+//vector< vector <double> > Y(28, vector<double> (28, 0));
   for(int i=0; i < Nx; i++)
   {
     for(int j=0; j < Ny; j++)
@@ -86,12 +99,17 @@ int main()
     }
   }
 
+  cout << X[4][2] << endl;
+
   //Main loop over Nx and Ny
+  double volumetotal[Nx*Ny];
+  double pressuretotal[Nx*Ny];
+  double entrop[Nx*Ny];
   for(int j=0; j<Nx; j++)
   {
     for(int k=0; k<Ny; k++)
     {
-      cout << j << ", " << k << " BZ = ";
+      cout << j << ", " << k << endl;
       double xstart = X[j][k];
       double ystart = Y[j][k];
       double zstart = 0.1;
@@ -106,10 +124,79 @@ int main()
 
       double bztest = LFM3DInterp(xpos,ypos,zpos,bz,xstart,ystart,zstart);
 
-      cout << bztest << endl;
+      if(bztest > 0)
+      {
+        double volume = 0;
+        double press = LFM3DInterp(xpos,ypos,zpos,pressure,xstart,ystart,zstart);
+        double bxtrack,bytrack,bztrack,btrack;
+        double radi;
+        for(int i =0; i< 1000; i++)
+        {
+          bxtrack=LFM3DInterp(xpos,ypos,zpos,bx,xtrack[i],ytrack[i],ztrack[i]);
+          bytrack=LFM3DInterp(xpos,ypos,zpos,by,xtrack[i],ytrack[i],ztrack[i]);
+          bztrack=LFM3DInterp(xpos,ypos,zpos,bz,xtrack[i],ytrack[i],ztrack[i]);
+          btrack = sqrt(pow(bxtrack,2)+pow(bytrack,2)+pow(bztrack,2));
 
+          xtrack[i+1]=bxtrack/btrack*dl+xtrack[i];
+          ytrack[i+1]=bytrack/btrack*dl+ytrack[i];
+          ztrack[i+1]=bztrack/btrack*dl+ztrack[i];
 
+          volume = dl/btrack+volume;
+
+          radi = sqrt(pow(xtrack[i+1],2)+pow(ytrack[i+1],2)+pow(ztrack[i+1],2));
+
+          if(radi < 3.5) break;
+
+          if(radi > 2*dist(xstart,ystart,zstart) || (sqrt(pow(ytrack[i],2)) > 45))
+          {
+            volume = 0;
+            break;
+          }
+
+        }
+        
+        for(int i =0; i< 1000; i++)
+        {
+          bxtrack=LFM3DInterp(xpos,ypos,zpos,bx,xtrack2[i],ytrack2[i],ztrack2[i]);
+          bytrack=LFM3DInterp(xpos,ypos,zpos,by,xtrack2[i],ytrack2[i],ztrack2[i]);
+          bztrack=LFM3DInterp(xpos,ypos,zpos,bz,xtrack2[i],ytrack2[i],ztrack2[i]);
+          btrack = sqrt(pow(bxtrack,2)+pow(bytrack,2)+pow(bztrack,2));
+
+          xtrack2[i+1]=bxtrack/btrack*(-dl)+xtrack2[i];
+          ytrack2[i+1]=bytrack/btrack*(-dl)+ytrack2[i];
+          ztrack2[i+1]=bztrack/btrack*(-dl)+ztrack2[i];
+
+          volume = dl/btrack+volume;
+
+          radi = sqrt(pow(xtrack2[i+1],2)+pow(ytrack2[i+1],2)+pow(ztrack[i+1],2));
+
+          if(radi < 3.5) break;
+
+          if(radi > 2*dist(xstart,ystart,zstart) || (sqrt(pow(ytrack2[i],2)) > 45))
+          {
+            volume = 0;
+            break;
+          }
+
+        }
+        
+        //volumetotal[Ny*j+k]=volume;
+        //pressuretotal[Ny*j+k]=press;
+        //entrop[Ny*j+k]=pow(press*volume,1.6666);
+      }else
+      {
+        //volumetotal[Ny*j+k]=0;
+        //pressuretotal[Ny*j+k]=0;
+        //entrop[Ny*j+k]=0;
+      }
     }
+  }
+
+  for(int j=1;j<10;j++)
+  {
+    //cout << volumetotal[j][1] << endl;
+    //cout << pressuretotal[j][1] << endl;
+    //cout << entrop[j][1] << endl;
   }
 
 }
@@ -126,12 +213,11 @@ double LFM3DInterp(double x[], double y[], double z[], double bz[], double x0, d
   double theta, theta1, theta2;
   int KK;
 
-  for(int k=1; k<NK-1; k++)
+  for(int k=0; k<NK-1; k++)
   {
-    theta1 = PI - sign(z[shellIndex(5,5,k)])*acos(-y[shellIndex(5,5,k)]/sqrt(pow(y[shellIndex(5,5,k)],2.) + pow(z[shellIndex(5,5,k)],2.)));
-    theta2 = PI - sign(z[shellIndex(5,5,k+1)])*acos(-y[shellIndex(5,5,k+1)]/sqrt(pow(y[shellIndex(5,5,k+1)],2.) + pow(z[shellIndex(5,5,k+1)],2.)));
-
-    double theta;
+    theta1 = PI - sign(z[shellIndex(4,4,k)])*acos(-y[shellIndex(4,4,k)]/sqrt(pow(y[shellIndex(4,4,k)],2.) + pow(z[shellIndex(4,4,k)],2.)));
+    theta2 = PI - sign(z[shellIndex(4,4,k+1)])*acos(-y[shellIndex(4,4,k+1)]/sqrt(pow(y[shellIndex(4,4,k+1)],2.) + pow(z[shellIndex(4,4,k+1)],2.)));
+    
     if (z0==0){
       theta = PI/2 - PI/2*sign(y0);
     }else{
@@ -190,7 +276,7 @@ double kshell_tri_interp(double x[],double y[], double z[], double data[], doubl
       p[i][j] = x[shellIndex(i,j,KK)];
       q[i][j] = sqrt(pow(y[shellIndex(i,j,KK)],2.0)+pow(z[shellIndex(i,j,KK)],2.0));
       p1=x0;
-      q1=sqrt(pow(y1,2.0)+pow(z1,2.0));
+      q1=sqrt(pow(y1,2.0)+pow(z1,2.0)); //Why is this line here? Seems like waste of computational time
       data1[i][j] = data[shellIndex(i,j,KK)];
     }
   }
@@ -210,20 +296,20 @@ double kshell_tri_interp(double x[],double y[], double z[], double data[], doubl
   {
     for(int j = 0; j < NJ-1; j++)
     {
-      s1[1] = p[i][j]-p1;
-      s1[2] = q[i][j]-q1;
-      s2[1] = p[i+1][j]-p1;
-      s2[2] = q[i+1][j]-q1;
-      s3[1] = p[i+1][j+1]-p1;
-      s3[2] = q[i+1][j+1]-q1;
-      s4[1] = p[i][j+1]-p1;
-      s4[2] = q[i][j+1]-q1;
+      s1[0] = p[i][j]-p1;
+      s1[1] = q[i][j]-q1;
+      s2[0] = p[i+1][j]-p1;
+      s2[1] = q[i+1][j]-q1;
+      s3[0] = p[i+1][j+1]-p1;
+      s3[1] = q[i+1][j+1]-q1;
+      s4[0] = p[i][j+1]-p1;
+      s4[1] = q[i][j+1]-q1;
 
       //Triangle 1, ANG(12)+ANG(24)+ANG(41)=2*pi
       double theta12, theta24, theta41;
-      theta12=acos((s1[1]*s2[1]*s1[2]*s2[2])/sqrt((pow(s1[1],2)+pow(s1[2],2))*(pow(s2[1],2)+pow(s2[2],2))));
-      theta24=acos((s2[1]*s4[1]*s2[2]*s4[2])/sqrt((pow(s2[1],2)+pow(s2[2],2))*(pow(s4[1],2)+pow(s4[2],2))));
-      theta41=acos((s4[1]*s1[1]*s4[2]*s1[2])/sqrt((pow(s4[1],2)+pow(s4[2],2))*(pow(s1[1],2)+pow(s1[2],2))));
+      theta12=acos((s1[0]*s2[0]+s1[1]*s2[1])/sqrt((pow(s1[0],2)+pow(s1[1],2))*(pow(s2[0],2)+pow(s2[1],2))));
+      theta24=acos((s2[0]*s4[0]+s2[1]*s4[1])/sqrt((pow(s2[0],2)+pow(s2[1],2))*(pow(s4[0],2)+pow(s4[1],2))));
+      theta41=acos((s4[0]*s1[0]+s4[1]*s1[1])/sqrt((pow(s4[0],2)+pow(s4[1],2))*(pow(s1[0],2)+pow(s1[1],2))));
 
       if(abs(theta12+theta24+theta41-2.0*PI) < 0.001)
       {
@@ -241,9 +327,9 @@ double kshell_tri_interp(double x[],double y[], double z[], double data[], doubl
 
       //Triangle 2, ANG(23)+ANG(34)+ANG(42)=2*pi
       double theta23, theta34, theta42;
-      theta23=acos((s1[1]*s3[1]*s2[2]*s3[2])/sqrt((pow(s2[1],2)+pow(s2[2],2))*(pow(s3[1],2)+pow(s3[2],2))));
-      theta34=acos((s3[1]*s4[1]*s3[2]*s4[2])/sqrt((pow(s3[1],2)+pow(s3[2],2))*(pow(s4[1],2)+pow(s4[2],2))));
-      theta42=acos((s4[1]*s2[1]*s4[2]*s2[2])/sqrt((pow(s4[1],2)+pow(s4[2],2))*(pow(s2[1],2)+pow(s2[2],2))));
+      theta23=acos((s2[0]*s3[0]+s2[1]*s3[1])/sqrt((pow(s2[0],2)+pow(s2[1],2))*(pow(s3[0],2)+pow(s3[1],2))));
+      theta34=acos((s3[0]*s4[0]+s3[1]*s4[1])/sqrt((pow(s3[0],2)+pow(s3[1],2))*(pow(s4[0],2)+pow(s4[1],2))));
+      theta42=acos((s4[0]*s2[0]+s4[1]*s2[1])/sqrt((pow(s4[0],2)+pow(s4[1],2))*(pow(s2[0],2)+pow(s2[1],2))));
 
 
       if(abs(theta23+theta34+theta42-2.0*PI) < 0.001)
@@ -297,7 +383,7 @@ double kshell_tri_interp(double x[],double y[], double z[], double data[], doubl
 
   double temp3[3][3] = { {p1, q1, 1},
                         {xx1, yy1, 1},
-                        {xx3, yy3, 1}};
+                        {xx2, yy2, 1}};
   for(int i=0;i<3;i++){
     for(int j=0;j<3;j++){
       arr3[i][j] = temp3[i][j];
@@ -318,7 +404,15 @@ double kshell_tri_interp(double x[],double y[], double z[], double data[], doubl
 }
 
 
+double dist(double x, double y, double z)
+{
+  return sqrt(pow(x,2)+pow(y,2)+pow(z,2));
+}
 
+double dist(double x, double y)
+{
+  return sqrt(pow(x,2)+pow(y,2));
+}
 
 
 

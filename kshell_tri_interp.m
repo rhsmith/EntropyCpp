@@ -19,6 +19,7 @@ for i=1:NI
     end
 end
 
+
 % find out which triangle is (p1.q1) in
 % search through (i,j) pairs, each cell is divided to two trangles:
 % 1 (i,j) (i+1,j),(i,j+1)
@@ -101,10 +102,10 @@ end
 %             xlabel('p'),ylabel('q');
 %             xlim([p1-10 p1+10]);ylim([q1-10 q1+10]);
             
-        arr1=[xx1 yy1 1]';
-        arr2=[xx2 yy2 1]';
-        arr3=[xx3 yy3 1]';
-        arr= [p1 q1 1]';
-        d=(ff1*det([arr arr2 arr3]')-ff2*det([arr arr1 arr3]')+ff3*det([arr arr1 arr2]'))/det([arr1 arr2 arr3]');
-        %g=griddata(p,q,data1,p1,q1);
-        %g=d;
+arr1=[xx1 yy1 1]';
+arr2=[xx2 yy2 1]';
+arr3=[xx3 yy3 1]';
+arr= [p1 q1 1]';
+d=(ff1*det([arr arr2 arr3]')-ff2*det([arr arr1 arr3]')+ff3*det([arr arr1 arr2]'))/det([arr1 arr2 arr3]');
+%g=griddata(p,q,data1,p1,q1);
+%g=d;
