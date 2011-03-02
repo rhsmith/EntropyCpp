@@ -77,6 +77,10 @@ for jj=start:finish
     
     [Nx Ny]=size(X);
     
+    volumetotal = zeros(Nx,Ny);
+    pressuretotal = zeros(Nx,Ny);
+    entrop = zeros(Nx,Ny);
+    
     for j=1:Nx
         for k=1:Ny
             [j k]
@@ -178,9 +182,9 @@ for jj=start:finish
     pressuretotal(1:10,1);
     entrop(1:10,1);
     
-    entropytime(jj-start+1,:,:)=entrop(:,:);
-    volumetime(jj-start+1,:,:)=volumetotal(:,:);
-    pressuretime(jj-start+1,:,:)=pressuretotal(:,:);
+    %entropytime(jj-start+1,:,:)=entrop(:,:);
+    %volumetime(jj-start+1,:,:)=volumetotal(:,:);
+    %pressuretime(jj-start+1,:,:)=pressuretotal(:,:);
 end
 
 save('/thayerfs/research/lfm/entropy/b10v400/b10v400data.mat', 'entropytime', 'volumetime', 'pressuretime');

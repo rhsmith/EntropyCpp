@@ -102,9 +102,11 @@ int main()
   cout << X[4][2] << endl;
 
   //Main loop over Nx and Ny
-  double volumetotal[Nx*Ny];
-  double pressuretotal[Nx*Ny];
-  double entrop[Nx*Ny];
+  double volumetotal[Nx][Ny];
+  double pressuretotal[Nx][Ny];
+  double entrop[Nx][Ny];
+
+#pragma omp parallel for schedule(dynamic) num_threads(3) collapse(2)
   for(int j=0; j<Nx; j++)
   {
     for(int k=0; k<Ny; k++)
@@ -114,13 +116,30 @@ int main()
       double ystart = Y[j][k];
       double zstart = 0.1;
 
-      double xtrack[10] = {xstart,0,0,0,0,0,0,0,0,0};
-      double ytrack[10] = {ystart,0,0,0,0,0,0,0,0,0};
-      double ztrack[10] = {zstart,0,0,0,0,0,0,0,0,0};
+      double xtrack[1000];
+      double ytrack[1000];
+      double ztrack[1000];
 
-      double xtrack2[10] = {xstart,0,0,0,0,0,0,0,0,0};
-      double ytrack2[10] = {ystart,0,0,0,0,0,0,0,0,0};
-      double ztrack2[10] = {zstart,0,0,0,0,0,0,0,0,0};
+      double xtrack2[1000];
+      double ytrack2[1000];
+      double ztrack2[1000];
+
+      xtrack[0] = xstart;
+      ytrack[0] = ystart;
+      ztrack[0] = zstart;
+      xtrack2[0] = xstart;
+      ytrack2[0] = ystart;
+      ztrack2[0] = zstart;
+
+      for(int ii=1; ii < 1000; ii++)
+      {
+        xtrack[ii] = 0;
+        ytrack[ii] = 0;
+        ztrack[ii] = 0;
+        xtrack2[ii] = 0;
+        ytrack2[ii] = 0;
+        ztrack2[ii] = 0;
+      }
 
       double bztest = LFM3DInterp(xpos,ypos,zpos,bz,xstart,ystart,zstart);
 
@@ -180,23 +199,23 @@ int main()
 
         }
         
-        //volumetotal[Ny*j+k]=volume;
-        //pressuretotal[Ny*j+k]=press;
-        //entrop[Ny*j+k]=pow(press*volume,1.6666);
+        volumetotal[j][k]=volume;
+        pressuretotal[j][k]=press;
+        entrop[j][k]=pow(press*volume,1.6666);
       }else
       {
-        //volumetotal[Ny*j+k]=0;
-        //pressuretotal[Ny*j+k]=0;
-        //entrop[Ny*j+k]=0;
+        volumetotal[j][k]=0;
+        pressuretotal[j][k]=0;
+        entrop[j][k]=0;
       }
     }
   }
 
   for(int j=1;j<10;j++)
   {
-    //cout << volumetotal[j][1] << endl;
-    //cout << pressuretotal[j][1] << endl;
-    //cout << entrop[j][1] << endl;
+    cout << volumetotal[j][1] << endl;
+    cout << pressuretotal[j][1] << endl;
+    cout << entrop[j][1] << endl;
   }
 
 }
