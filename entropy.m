@@ -80,6 +80,7 @@ for jj=start:finish
     volumetotal = zeros(Nx,Ny);
     pressuretotal = zeros(Nx,Ny);
     entrop = zeros(Nx,Ny);
+    bzfailure = zeros(Nx,Ny)
     
     for j=1:Nx
         for k=1:Ny
@@ -172,15 +173,18 @@ for jj=start:finish
                 entrop(j,k)=0;
                 volumetotal(j,k)=0;
                 pressuretotal(j,k)=0;
-                
+                bzfailures(j,k) = 1;
             end
             
         end
     end
     
-    volumetotal(1:10,1);
-    pressuretotal(1:10,1);
-    entrop(1:10,1);
+    volumetotal(1:10,1)
+    axd = 'end volume'
+    pressuretotal(1:10,1)
+    axd = 'end pressure'
+    entrop(1:10,1)
+    axd = 'end entrop'
     
     %entropytime(jj-start+1,:,:)=entrop(:,:);
     %volumetime(jj-start+1,:,:)=volumetotal(:,:);

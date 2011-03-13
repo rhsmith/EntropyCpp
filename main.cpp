@@ -106,7 +106,7 @@ int main()
   double pressuretotal[Nx][Ny];
   double entrop[Nx][Ny];
 
-#pragma omp parallel for schedule(dynamic) num_threads(3) collapse(2)
+#pragma omp parallel for schedule(dynamic) collapse(2)
   for(int j=0; j<Nx; j++)
   {
     for(int k=0; k<Ny; k++)
@@ -166,7 +166,7 @@ int main()
 
           if(radi < 3.5) break;
 
-          if(radi > 2*dist(xstart,ystart,zstart) || (sqrt(pow(ytrack[i],2)) > 45))
+          if(radi > 2*sqrt(pow(xstart,2)+pow(ystart,2)+pow(zstart,2)) || sqrt(pow(ytrack[i],2)) > 45)
           {
             volume = 0;
             break;
@@ -179,6 +179,7 @@ int main()
           bxtrack=LFM3DInterp(xpos,ypos,zpos,bx,xtrack2[i],ytrack2[i],ztrack2[i]);
           bytrack=LFM3DInterp(xpos,ypos,zpos,by,xtrack2[i],ytrack2[i],ztrack2[i]);
           bztrack=LFM3DInterp(xpos,ypos,zpos,bz,xtrack2[i],ytrack2[i],ztrack2[i]);
+
           btrack = sqrt(pow(bxtrack,2)+pow(bytrack,2)+pow(bztrack,2));
 
           xtrack2[i+1]=bxtrack/btrack*(-dl)+xtrack2[i];
@@ -187,11 +188,11 @@ int main()
 
           volume = dl/btrack+volume;
 
-          radi = sqrt(pow(xtrack2[i+1],2)+pow(ytrack2[i+1],2)+pow(ztrack[i+1],2));
+          radi = sqrt(pow(xtrack2[i+1],2)+pow(ytrack2[i+1],2)+pow(ztrack2[i+1],2));
 
           if(radi < 3.5) break;
 
-          if(radi > 2*dist(xstart,ystart,zstart) || (sqrt(pow(ytrack2[i],2)) > 45))
+          if(radi > 2*sqrt(pow(xstart,2)+pow(ystart,2)+pow(zstart,2)) || sqrt(pow(ytrack2[i],2)) > 45)
           {
             volume = 0;
             break;
@@ -201,7 +202,7 @@ int main()
         
         volumetotal[j][k]=volume;
         pressuretotal[j][k]=press;
-        entrop[j][k]=pow(press*volume,1.6666);
+        entrop[j][k]=pow(volume,1.6666)*press;
       }else
       {
         volumetotal[j][k]=0;
@@ -211,11 +212,47 @@ int main()
     }
   }
 
-  for(int j=1;j<10;j++)
+  for(int j=0;j<26;j++)
   {
-    cout << volumetotal[j][1] << endl;
-    cout << pressuretotal[j][1] << endl;
-    cout << entrop[j][1] << endl;
+    cout << volumetotal[j][0] << endl;
+  }
+//  for(int j=0;j<26;j++)
+//  {
+//    cout << pressuretotal[j][0] << endl;
+//  }
+//  for(int j=0;j<26;j++)
+//  {
+//    cout << entrop[j][0] << endl;
+//  }
+
+  ofstream cpressurefile;
+  ofstream cvolumefile;
+  ofstream centropfile;
+
+  cvolumefile.open("cvolume.txt",ios::out);
+  cpressurefile.open("cpressure.txt",ios::out);
+  centropfile.open("centrop.txt",ios::out);
+
+  for(int i = 0; i < Nx; i++)
+  {
+      for(int j = 0; j < Ny; j++)
+      {
+          cvolumefile << volumetotal[i][j] << " ";
+          cpressurefile << pressuretotal[i][j] << " ";
+          centropfile << entrop[i][j] << " ";
+      }
+      cvolumefile << endl;
+      cpressurefile << endl;
+      centropfile << endl;
+  }
+
+  posFile.open(positionsPath.c_str(), ios::in);
+  if(!posFile.is_open()){cout << "Error reading file" << endl;exit(1);}
+  for(int i = 0; i < N; i++)
+  {
+    posFile >> xpos[i];
+    posFile >> ypos[i];
+    posFile >> zpos[i];
   }
 
 }
@@ -243,7 +280,7 @@ double LFM3DInterp(double x[], double y[], double z[], double bz[], double x0, d
       theta = PI - sign(z0)*acos(-y0/sqrt(pow(y0,2)+pow(z0,2)));
     }
 
-    KK=64;
+    KK=63;
     if((theta-theta1)*(theta-theta2)<0){
       KK = k;
       break;
@@ -257,15 +294,15 @@ double LFM3DInterp(double x[], double y[], double z[], double bz[], double x0, d
   double z2=rho0*sin(theta2);
   double d1,d2,d;
 
-  if(KK==65){
+  if(KK==64){
     d1=kshell_tri_interp(x,y,z,bz,x0,y1,z1,KK);
-    d2=kshell_tri_interp(x,y,z,bz,x0,y2,z2,1);
+    d2=kshell_tri_interp(x,y,z,bz,x0,y2,z2,0);
   } else {
     d1=kshell_tri_interp(x,y,z,bz,x0,y1,z1,KK);
     d2=kshell_tri_interp(x,y,z,bz,x0,y2,z2,KK);
   }
 
-  if (KK<64){
+  if (KK<63){
     d=(d2-d1)*(theta-theta1)/(theta2-theta1)+d1;
   }else{
     theta1=theta1-2*PI;
@@ -275,6 +312,8 @@ double LFM3DInterp(double x[], double y[], double z[], double bz[], double x0, d
   return d;
 
 }
+
+
 
 double kshell_tri_interp(double x[],double y[], double z[], double data[], double x0, double y1, double z1, int KK)
 {
@@ -295,7 +334,7 @@ double kshell_tri_interp(double x[],double y[], double z[], double data[], doubl
       p[i][j] = x[shellIndex(i,j,KK)];
       q[i][j] = sqrt(pow(y[shellIndex(i,j,KK)],2.0)+pow(z[shellIndex(i,j,KK)],2.0));
       p1=x0;
-      q1=sqrt(pow(y1,2.0)+pow(z1,2.0)); //Why is this line here? Seems like waste of computational time
+      q1=sqrt(pow(y1,2.0)+pow(z1,2.0));
       data1[i][j] = data[shellIndex(i,j,KK)];
     }
   }
@@ -426,11 +465,6 @@ double kshell_tri_interp(double x[],double y[], double z[], double data[], doubl
 double dist(double x, double y, double z)
 {
   return sqrt(pow(x,2)+pow(y,2)+pow(z,2));
-}
-
-double dist(double x, double y)
-{
-  return sqrt(pow(x,2)+pow(y,2));
 }
 
 
